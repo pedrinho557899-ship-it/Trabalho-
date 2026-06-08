@@ -1,12 +1,15 @@
 const slides = Array.from(document.querySelectorAll(".slide"));
 const prevButton = document.querySelector("#prev");
 const nextButton = document.querySelector("#next");
+const slideFragments = slides.map((slide) =>
+  Array.from(slide.querySelectorAll(".fragment"))
+);
 
 let current = 0;
 let step = 0;
 
 function fragmentsFor(slide) {
-  return Array.from(slide.querySelectorAll(".fragment"));
+  return slideFragments[slides.indexOf(slide)] || [];
 }
 
 function paintFragments(slide) {
@@ -16,26 +19,26 @@ function paintFragments(slide) {
 }
 
 function resetSlide(slide) {
-  slide.querySelectorAll(".photo, .note").forEach((item) => {
-    item.style.translate = "";
-  });
   fragmentsFor(slide).forEach((fragment) => {
     fragment.classList.remove("visible");
   });
 }
 
 function showSlide(index) {
+  const previousSlide = slides[current];
+
   current = Math.max(0, Math.min(index, slides.length - 1));
   step = 0;
 
-  slides.forEach((slide, slideIndex) => {
-    resetSlide(slide);
-    slide.classList.toggle("active", slideIndex === current);
-  });
+  if (previousSlide && previousSlide !== slides[current]) {
+    resetSlide(previousSlide);
+    previousSlide.classList.remove("active");
+  }
+
+  slides[current].classList.add("active");
 
   paintFragments(slides[current]);
   updateButtons();
-  burst();
 }
 
 function updateButtons() {
@@ -51,7 +54,6 @@ function nextStep() {
     step += 1;
     paintFragments(slides[current]);
     updateButtons();
-    burst();
     return;
   }
 
@@ -67,44 +69,16 @@ function previousStep() {
   }
 
   if (current > 0) {
+    const previousSlide = slides[current];
     current -= 1;
     step = Math.max(0, fragmentsFor(slides[current]).length - 1);
 
-    slides.forEach((slide, slideIndex) => {
-      resetSlide(slide);
-      slide.classList.toggle("active", slideIndex === current);
-    });
+    resetSlide(previousSlide);
+    previousSlide.classList.remove("active");
+    slides[current].classList.add("active");
 
     paintFragments(slides[current]);
     updateButtons();
-  }
-}
-
-function addPointerMotion(event) {
-  const activeSlide = slides[current];
-
-  if (!activeSlide) return;
-
-  const x = event.clientX / window.innerWidth - 0.5;
-  const y = event.clientY / window.innerHeight - 0.5;
-
-  activeSlide.querySelectorAll(".photo, .note").forEach((item, itemIndex) => {
-    const strength = itemIndex % 2 === 0 ? 15 : -11;
-    item.style.translate = `${x * strength}px ${y * strength}px`;
-  });
-}
-
-function burst() {
-  const amount = 10;
-
-  for (let index = 0; index < amount; index += 1) {
-    const spark = document.createElement("span");
-    spark.className = "spark";
-    spark.style.left = `${window.innerWidth - 90 + Math.random() * 42}px`;
-    spark.style.top = `${window.innerHeight - 70 + Math.random() * 26}px`;
-    spark.style.animationDelay = `${Math.random() * 0.18}s`;
-    document.body.appendChild(spark);
-    setTimeout(() => spark.remove(), 1200);
   }
 }
 
@@ -117,7 +91,5 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Home") showSlide(0);
   if (event.key === "End") showSlide(slides.length - 1);
 });
-
-document.addEventListener("mousemove", addPointerMotion);
 
 showSlide(0);
